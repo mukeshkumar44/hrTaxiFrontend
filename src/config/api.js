@@ -20,7 +20,7 @@ console.log('API Base URL:', API_BASE_URL);
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // This is important for sending cookies
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -31,9 +31,16 @@ const apiClient = axios.create({
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Don't set Authorization header for login/register endpoints
+    const isAuthEndpoint = ['/users/login', '/users/register'].some(endpoint => 
+      config.url?.endsWith(endpoint)
+    );
+
+    if (!isAuthEndpoint) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     
     // For file uploads, remove the Content-Type header to let the browser set it
@@ -51,10 +58,18 @@ apiClient.interceptors.request.use(
 
 // Response interceptor
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If there's a new token in the response, update it
+    if (response.data?.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
+      // Clear auth data on 401 Unauthorized
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

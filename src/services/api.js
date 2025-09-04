@@ -80,37 +80,60 @@ export const authService = {
         }
       });
       
-      console.log('Login successful - Full response:', {
-        status: response.status,
-        headers: response.headers,
-        data: response.data,
-        user: response.data?.user,
-        token: response.data?.token,
-        role: response.data?.user?.role
-      });
+      console.log('Login successful - Full response:', response.data);
       
-      // Save token and user data to localStorage
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        console.log('Token saved to localStorage');
-      } else if (response.data.data?.token) {
-        // Handle case where token is nested in data object
-        localStorage.setItem('token', response.data.data.token);
-        console.log('Token (nested) saved to localStorage');
+      // Handle different response structures
+      const responseData = response.data;
+      let token, user;
+      
+      if (responseData.token) {
+        // Case 1: Token at root level
+        token = responseData.token;
+        user = responseData.user;
+      } else if (responseData.data?.token) {
+        // Case 2: Token nested in data object
+        token = responseData.data.token;
+        user = responseData.data.user || responseData.data;
+      } else if (responseData.accessToken) {
+        // Case 3: Access token format
+        token = responseData.accessToken;
+        user = responseData.user || responseData;
+      } else {
+        // Case 4: Fallback to first available token
+        const possibleTokenKeys = ['token', 'access_token', 'jwt'];
+        for (const key of possibleTokenKeys) {
+          if (responseData[key]) {
+            token = responseData[key];
+            user = responseData.user || responseData;
+            break;
+          }
+        }
       }
       
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      } else if (response.data.data?.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      if (!token) {
+        console.error('No token found in response:', responseData);
+        throw new Error('No authentication token received from server');
       }
       
-      return response.data;
+      // Save token and user data
+      localStorage.setItem('token', token);
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+      
+      console.log('Login successful - Token saved');
+      return { token, user, data: responseData };
+      
     } catch (error) {
       console.error('Login error details:', {
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
       });
       throw error;
     }

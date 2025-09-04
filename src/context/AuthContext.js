@@ -2,6 +2,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { authService } from '../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
+import apiClient from '../config/api'; // Updated import path to point to the correct location
 
 const AuthContext = createContext();
 
@@ -71,33 +72,39 @@ export const AuthProvider = ({ children }) => {
   // ---------------- Login ----------------
   const login = async (credentials) => {
     try {
-      const response = await authService.login(credentials);
-      const token = response.token || (response.data && response.data.token);
-      const user = response.user || (response.data && response.data.user);
+      const { token, user } = await authService.login(credentials);
       
       if (token && user) {
+        // Update state and storage
+        setCurrentUser(user);
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        setCurrentUser(user);
+        
+        // Set up axios default headers
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         // Redirect based on role
         const role = user.role || (user.roles?.includes('admin') ? 'admin' : 
                                  user.roles?.includes('driver') ? 'driver' : 'user');
-      
-        // Force a small delay to ensure state is updated before navigation
+        
+        // Small delay to ensure state is updated
         setTimeout(() => {
           navigate(role === 'admin' ? '/admin/dashboard' : 
-                role === 'driver' ? '/driver/dashboard' : '/', 
-                { replace: true });
-          // Force a re-render of the entire app
-          window.dispatchEvent(new Event('storage'));
+                  role === 'driver' ? '/driver/dashboard' : '/', 
+                  { replace: true });
         }, 100);
-      
+        
         return { success: true, user };
       }
-      throw new Error('No token or user data received');
+      
+      throw new Error('Login failed: No user data received');
+      
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error in AuthContext:', error);
+      // Clear any partial auth data on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setCurrentUser(null);
       throw error;
     }
   };
