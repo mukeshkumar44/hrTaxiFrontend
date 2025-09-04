@@ -1,26 +1,14 @@
 // frontend/src/config/api.js
 import axios from 'axios';
 
-// Determine the base URL based on the environment
-const getBaseUrl = () => {
-  // If REACT_APP_API_URL is set, use it (can be set in .env)
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL.replace(/\/+$/, '');
-  }
-  
-  // Default to localhost in development, production URL in production
-  return process.env.NODE_ENV === 'production'
-    ? 'https://hrtaxibackend.onrender.com/api'
-    : 'http://localhost:5000/api';
-};
-
-const API_BASE_URL = getBaseUrl();
+// Get base URL from environment variables
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 console.log('API Base URL:', API_BASE_URL);
 
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // This is important for sending cookies
+  withCredentials: true,
   headers: {
     'Accept': 'application/json',
     'Content-Type': 'application/json',

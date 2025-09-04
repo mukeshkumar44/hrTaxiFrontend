@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://hrtaxibackend.onrender.com/api';
 
 // Create axios instance
 export const apiClient = axios.create({
@@ -69,21 +69,16 @@ export const contactService = {
 export const authService = {
   register: (userData) => apiClient.post('/users/register', userData),
   login: async (credentials) => {
-    console.log('Login request data before sending:', JSON.stringify(credentials, null, 2));
     try {
       const response = await apiClient.post('/users/login', {
         email: credentials?.email?.trim() || '',
         password: credentials?.password || ''
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
-      
-      console.log('Login successful - Full response:', response.data);
+
+      const responseData = response.data;
+      console.log('Login response:', responseData);
       
       // Handle different response structures
-      const responseData = response.data;
       let token, user;
       
       if (responseData.token) {
@@ -109,23 +104,22 @@ export const authService = {
           }
         }
       }
-      
+
       if (!token) {
         console.error('No token found in response:', responseData);
         throw new Error('No authentication token received from server');
       }
-      
-      // Save token and user data
+
+      // Save to localStorage
       localStorage.setItem('token', token);
       if (user) {
         localStorage.setItem('user', JSON.stringify(user));
       }
-      
-      console.log('Login successful - Token saved');
+
       return { token, user, data: responseData };
       
     } catch (error) {
-      console.error('Login error details:', {
+      console.error('Login error:', {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
