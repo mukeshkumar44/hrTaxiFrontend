@@ -1,59 +1,72 @@
 // src/context/AuthContext.js
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { authService } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          const response = await authService.getCurrentUser();
-          const user = response?.user || null;
+  // Function to update user data
+  const updateUser = useCallback((userData) => {
+    if (userData) {
+      setCurrentUser(prevUser => ({
+        ...prevUser,
+        ...userData
+      }));
+      // Also update in localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({ ...user, ...userData }));
+    }
+  }, []);
+
+  // Check authentication status
+  const checkAuth = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await authService.getCurrentUser();
+        const user = response?.user || null;
+        
+        if (user) {
+          setCurrentUser(user);
+          localStorage.setItem('user', JSON.stringify(user));
           
-          if (user) {
-            setCurrentUser(user);
-
-            // Redirect if already logged in and user is on login/signup
-            if (['/login', '/signup', '/register'].includes(window.location.pathname)) {
-              const role = user.role || (user.roles?.includes('admin') ? 'admin' : 
-                                      user.roles?.includes('driver') ? 'driver' : 'user');
-              
-              if (role === 'admin') {
-                navigate('/admin/dashboard', { replace: true });
-              } else if (role === 'driver') {
-                navigate('/driver/dashboard', { replace: true });
-              } else {
-                navigate('/dashboard', { replace: true });
-              }
-            }
-          } else {
-            // If no valid user data, clear the invalid token
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+          // Redirect if on auth pages
+          if (['/login', '/signup', '/register'].includes(location.pathname)) {
+            const role = user.role || (user.roles?.includes('admin') ? 'admin' : 
+                                    user.roles?.includes('driver') ? 'driver' : 'user');
+            
+            navigate(role === 'admin' ? '/admin/dashboard' : 
+                    role === 'driver' ? '/driver/dashboard' : '/dashboard', 
+                    { replace: true });
           }
+        } else {
+          // If no valid user data, clear the invalid token
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setCurrentUser(null);
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setCurrentUser(null);
-      } finally {
-        setLoading(false);
-        setInitialized(true);
       }
-    };
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
+      setInitialized(true);
+    }
+  }, [navigate, location.pathname]);
 
+  useEffect(() => {
     checkAuth();
-  }, [navigate]);
+  }, [checkAuth]);
 
   // ---------------- Login ----------------
   const login = async (credentials) => {
@@ -65,14 +78,20 @@ export const AuthProvider = ({ children }) => {
       if (token && user) {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        setCurrentUser(user); // This will trigger a re-render
+        setCurrentUser(user);
 
         // Redirect based on role
         const role = user.role || (user.roles?.includes('admin') ? 'admin' : 
-                               user.roles?.includes('driver') ? 'driver' : 'user');
+                                 user.roles?.includes('driver') ? 'driver' : 'user');
       
-        navigate(role === 'admin' ? '/admin/dashboard' : 
-              role === 'driver' ? '/driver/dashboard' : '/');
+        // Force a small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          navigate(role === 'admin' ? '/admin/dashboard' : 
+                role === 'driver' ? '/driver/dashboard' : '/', 
+                { replace: true });
+          // Force a re-render of the entire app
+          window.dispatchEvent(new Event('storage'));
+        }, 100);
       
         return { success: true, user };
       }
@@ -82,6 +101,7 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   };
+
   // ---------------- Logout ----------------
   const logout = async () => {
     try {
@@ -94,24 +114,23 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('user');
       setCurrentUser(null);
       
-      // Force a hard redirect to the login page
-      window.location.href = '/login';
-      
-      // Force a reload to ensure all state is cleared
+      // Navigate to login and force a reload
+      navigate('/login', { replace: true });
       window.location.reload();
     }
   };
 
-  // ---------------- Helpers ----------------
-  const isAdmin = () => {
-    const user = currentUser || JSON.parse(localStorage.getItem('user'));
-    return user?.role === 'admin' || user?.roles?.includes('admin');
-  };
+  // Listen for storage events to sync tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' || e.key === 'user') {
+        checkAuth();
+      }
+    };
 
-  const isDriver = () => {
-    const user = currentUser || JSON.parse(localStorage.getItem('user'));
-    return user?.role === 'driver' || user?.roles?.includes('driver');
-  };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [checkAuth]);
 
   const value = {
     currentUser,
@@ -119,9 +138,8 @@ export const AuthProvider = ({ children }) => {
     initialized,
     login,
     logout,
-    isAdmin,
-    isDriver,
-    isAuthenticated: !!currentUser,
+    updateUser,
+    checkAuth
   };
 
   return (
@@ -132,5 +150,9 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
