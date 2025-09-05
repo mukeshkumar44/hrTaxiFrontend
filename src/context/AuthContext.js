@@ -1,14 +1,13 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { authService } from '../services/api';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
@@ -29,23 +28,41 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = useCallback(async (credentials) => {
     try {
+      // Clear any existing auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete apiClient.defaults.headers.common['Authorization'];
+      
+      // Perform login
       const { token, user } = await authService.login(credentials);
+      
       if (token && user) {
+        // Set new auth data
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Update state
         setCurrentUser(user);
         
-        // Redirect based on user role
+        // Redirect based on role
         const role = user.role || (user.roles?.includes('admin') ? 'admin' : 
                                  user.roles?.includes('driver') ? 'driver' : 'user');
         
         navigate(role === 'admin' ? '/admin/dashboard' : 
                 role === 'driver' ? '/driver/dashboard' : '/dashboard', 
                 { replace: true });
+        
+        return { success: true };
       }
-      return { success: true };
+      
+      throw new Error('Login failed: No token or user data received');
+      
     } catch (error) {
       console.error('Login error:', error);
+      setCurrentUser(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       return { success: false, error: error.message };
     }
   }, [navigate]);
