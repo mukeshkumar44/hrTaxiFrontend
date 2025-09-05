@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+// Get the API base URL from environment variables
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 const AdminGallery = () => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +23,7 @@ const AdminGallery = () => {
   const fetchGalleryImages = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('https://backendhrtaxi.onrender.com/api/gallery', {
+      const response = await axios.get(`${API_BASE_URL}/gallery`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -68,23 +71,53 @@ const AdminGallery = () => {
       return;
     }
 
+    // Validate file type and size (max 5MB)
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validImageTypes.includes(formData.image.type)) {
+      toast.error('Please upload a valid image (JPEG, PNG, or WebP)');
+      return;
+    }
+
+    if (formData.image.size > 5 * 1024 * 1024) {
+      toast.error('Image size should be less than 5MB');
+      return;
+    }
+
     const formDataToSend = new FormData();
+    
+    // Append the file with the correct field name (check your backend for the exact field name)
     formDataToSend.append('image', formData.image);
     formDataToSend.append('title', formData.title);
     formDataToSend.append('description', formData.description);
     formDataToSend.append('category', formData.category);
-    formDataToSend.append('isFeatured', formData.isFeatured ? 'true' : 'false');
+    // Convert boolean to string to ensure proper serialization
+    formDataToSend.append('isFeatured', String(formData.isFeatured));
+
+    setUploading(true);
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post('https://backendhrtaxi.onrender.com/api/gallery', formDataToSend, {
+      
+      // Log the FormData to verify
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(key, value);
+      }
+
+      const response = await axios({
+        method: 'post',
+        url: `${API_BASE_URL}/gallery`,
+        data: formDataToSend,
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+          
+        },
+        withCredentials: true
       });
-      
+
+      console.log('Upload response:', response.data);
       toast.success('Image uploaded successfully');
+      
+      // Reset form
       setFormData({
         title: '',
         description: '',
@@ -96,8 +129,17 @@ const AdminGallery = () => {
       setIsModalOpen(false);
       fetchGalleryImages();
     } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error(error.response?.data?.message || 'Failed to upload image');
+      console.error('Error uploading image:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
+      toast.error(error.response?.data?.message || 'Failed to upload image. Please check the console for details.');
     } finally {
       setUploading(false);
     }
@@ -108,7 +150,7 @@ const AdminGallery = () => {
     if (window.confirm('Are you sure you want to delete this image?')) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`https://backendhrtaxi.onrender.com/api/gallery/${id}`, {
+        await axios.delete(`${API_BASE_URL}/gallery/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
