@@ -14,40 +14,28 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   config => {
     const token = localStorage.getItem('token');
-    console.log('Token from localStorage:', token);
     if (token) {
-      console.log('Adding token to headers');
       config.headers['Authorization'] = `Bearer ${token}`;
-      console.log('Request headers after adding token:', config.headers);
-    } else {
-      console.warn('No token found in localStorage');
     }
     return config;
   },
   error => {
-    console.error('Request interceptor error:', error);
+    console.error('Request error:', error.message);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor for debugging
+// Add response interceptor
 apiClient.interceptors.response.use(
   response => {
-    console.log('API Response:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
     return response;
   },
   error => {
+    const errorMessage = error.response?.data?.message || error.message;
     console.error('API Error:', {
       url: error.config?.url,
       status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-      requestData: error.config?.data,  // Log the request data that caused the error
-      headers: error.config?.headers    // Log request headers for debugging
+      message: errorMessage
     });
     return Promise.reject(error);
   }
@@ -76,7 +64,6 @@ export const authService = {
       });
 
       const responseData = response.data;
-      console.log('Login response:', responseData);
       
       // Handle different response structures
       let token, user;
@@ -119,16 +106,7 @@ export const authService = {
       return { token, user, data: responseData };
       
     } catch (error) {
-      console.error('Login error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data
-        }
-      });
+      console.error('Login error:', error.message);
       throw error;
     }
   },
@@ -162,10 +140,7 @@ export const authService = {
       
       return { user: null };
     } catch (error) {
-      console.error('Error getting current user:', {
-        status: error.response?.status,
-        message: error.message
-      });
+      console.error('Error getting current user:', error.message);
       
       // Clear invalid token on 401
       if (error.response?.status === 401) {
@@ -201,12 +176,10 @@ export const adminService = {
   getAllTaxis: () => apiClient.get('/admin/taxis'),
   getTaxiById: (id) => apiClient.get(`/admin/taxis/${id}`),
   updateTaxiStatus: (id, status, rejectionReason = '') => {
-    console.log('Updating taxi status:', { id, status, rejectionReason });
     const requestData = { 
       status,
       ...(status === 'rejected' && rejectionReason && { rejectionReason })
     };
-    console.log('Sending request data:', requestData);
     return apiClient.patch(`/admin/taxis/${id}/status`, requestData, {
       headers: {
         'Content-Type': 'application/json'
@@ -218,21 +191,10 @@ export const adminService = {
   // Dashboard statistics
   getDashboardStats: async () => {
     try {
-      console.log('Fetching dashboard stats...');
       const response = await apiClient.get('/admin/dashboard');
-      console.log('Dashboard stats response:', response.data);
       return response;
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Error message:', error.message);
-      }
+      console.error('Error fetching dashboard stats:', error.message);
       throw error;
     }
   }
@@ -245,7 +207,7 @@ export const taxiService = {
       const response = await apiClient.get('/taxis/status');
       return response.data;
     } catch (error) {
-      console.error('Error fetching taxi status:', error);
+      console.error('Error fetching taxi status:', error.message);
       throw error;
     }
   },
@@ -254,7 +216,7 @@ export const taxiService = {
       const response = await apiClient.post('/taxis/register', taxiData);
       return response.data;
     } catch (error) {
-      console.error('Error registering taxi:', error);
+      console.error('Error registering taxi:', error.message);
       throw error;
     }
   }
