@@ -150,7 +150,7 @@ const Navbar = () => {
                                     <Link
                                       to={user.role === 'admin' || (user.roles && user.roles.includes('admin')) ? "/admin/dashboard" : "/user/dashboard"}
                                       className="border-transparent text-gray-500 hover:border-yellow-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                                    >
+                                     onClick={toggleMenu}>
                                      My Dashboard
                                     </Link>
                                   )}
@@ -208,10 +208,10 @@ const Navbar = () => {
       {/* Mobile menu */}
       <div className={`${isMenuOpen ? 'block' : 'hidden'} md:hidden bg-white shadow-lg rounded-b-lg`}>
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-          <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50">Home</Link>
-          <Link to="/destinations" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50">Destinations</Link>
-          <Link to="/services" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50">Services</Link>
-          <Link to="/booking" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50">Booking</Link>
+          <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50" onClick={toggleMenu}>Home</Link>
+          <Link to="/destinations" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50" onClick={toggleMenu}>Destinations</Link>
+          <Link to="/services" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50" onClick={toggleMenu}>Services</Link>
+          <Link to="/booking" className="block px-3 py-2 rounded-md text-base font-medium text-gray-800 hover:bg-yellow-50" onClick={toggleMenu}>Booking</Link>
           {/* Auth Links - Mobile */}
           {isLoggedIn ? (
             <>
@@ -272,7 +272,7 @@ const Navbar = () => {
                 {user && (
                                     <Link
                                       to={user.role === 'admin' || (user.roles && user.roles.includes('admin')) ? "/admin/dashboard" : "driver/dashboard"}
-                                      className="border-transparent text-gray-500 hover:border-yellow-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                                      className="border-transparent text-gray-500 hover:border-yellow-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" onClick={toggleMenu}
                                     >
                                      My Dashboard
                                     </Link>

@@ -41,9 +41,17 @@ const Signup = () => {
       
       localStorage.setItem('token', response.data.token);
       sessionStorage.setItem('verificationEmail', userData.email);
-      navigate(`/verify-otp?email=${encodeURIComponent(userData.email)}`);
+      // Navigate to OTP verification with email in state as well as query param
+      navigate(`/verify-otp?email=${encodeURIComponent(userData.email)}`, {
+        state: { email: userData.email }
+      });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      // Enhanced error handling
+      const errorMessage = err.response?.data?.message || 
+                          err.message || 
+                          'Registration failed. Please try again.';
+      setError(errorMessage);
+      console.error('Registration error:', err);
     } finally {
       setLoading(false);
     }

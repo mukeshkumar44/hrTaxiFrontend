@@ -23,79 +23,64 @@ const RideRequests = ({ requests, onAccept, onReject }) => {
       </div>
       
       <div className="max-h-96 overflow-y-auto">
-        {requests.map((request) => (
-          <div key={request.bookingId} className="border-b border-gray-200 p-4">
-            <div 
-              className="flex justify-between items-center cursor-pointer"
-              onClick={() => toggleExpand(request.bookingId)}
-            >
-              <div>
-                <div className="font-medium flex items-center">
-                  <FaUser className="text-gray-600 mr-2" />
-                  {request.customerName || 'Customer'}
+        {requests.map((request) => {
+          const requestId = request._id || request.bookingId;
+          return (
+            <div key={requestId} className="border-b border-gray-200 p-4">
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <div className="font-medium flex items-center mb-2">
+                    <FaUser className="text-gray-600 mr-2" />
+                    {request.user?.name || request.customerName || 'Customer'}
+                  </div>
+                  <div className="text-sm text-gray-600 flex items-start mb-1">
+                    <FaMapMarkerAlt className="text-green-500 mr-2 mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">Pickup:</div>
+                      <div>{request.pickupLocation?.address || 'N/A'}</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 flex items-start">
+                    <FaMapMarkerAlt className="text-red-500 mr-2 mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">Drop-off:</div>
+                      <div>{request.dropLocation?.address || request.dropoffLocation?.address || 'N/A'}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 flex items-center mt-1">
-                  <FaMapMarkerAlt className="mr-1" />
-                  {request.pickupLocation?.address?.substring(0, 30)}...
+                <div className="text-right ml-4">
+                  <div className="font-bold text-xl text-green-600">₹{request.fare || '--'}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    <FaClock className="inline mr-1" />
+                    {request.createdAt ? new Date(request.createdAt).toLocaleTimeString() : 'Now'}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-bold text-lg">₹{request.fare || '--'}</div>
-                <div className="text-xs text-gray-500">{new Date(request.createdAt).toLocaleTimeString()}</div>
+              
+              {/* Action Buttons - Always Visible */}
+              <div className="flex space-x-2 mt-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject(request);
+                  }}
+                  className="flex-1 py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium flex items-center justify-center"
+                >
+                  <FaTimes className="mr-2" /> Reject
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAccept(request);
+                  }}
+                  className="flex-1 py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center justify-center"
+                >
+                  <FaCheck className="mr-2" /> Accept
+                </button>
               </div>
             </div>
-            
-            {expandedRequest === request.bookingId && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                  <div className="flex items-center">
-                    <FaMapMarkerAlt className="text-red-500 mr-2" />
-                    <div>
-                      <div className="font-medium">Pickup</div>
-                      <div className="text-gray-600">{request.pickupLocation?.address}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <FaMapMarkerAlt className="text-green-500 mr-2" />
-                    <div>
-                      <div className="font-medium">Drop-off</div>
-                      <div className="text-gray-600">{request.dropoffLocation?.address}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-2">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <FaClock className="mr-1" />
-                    {new Date(request.createdAt).toLocaleString()}
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReject(request);
-                      }}
-                      className="p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
-                      title="Reject"
-                    >
-                      <FaTimes />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAccept(request);
-                      }}
-                      className="p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition-colors"
-                      title="Accept"
-                    >
-                      <FaCheck />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

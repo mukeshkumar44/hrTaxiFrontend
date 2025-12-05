@@ -518,6 +518,15 @@ const DriverDashboard = () => {
         </div>
       </main>
 
+      {/* Ride Requests Component - Fixed position at bottom right */}
+      {rideRequests.length > 0 && (
+        <RideRequests 
+          requests={rideRequests}
+          onAccept={handleAcceptRide}
+          onReject={handleRejectRide}
+        />
+      )}
+
       {/* Ride Request Modal */}
       {showRideRequest && currentRideRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -546,7 +555,7 @@ const DriverDashboard = () => {
                   <FiMapPin className="h-5 w-5 text-red-500 mr-2" />
                   <div>
                     <p className="text-sm text-gray-500">Drop-off</p>
-                    <p className="font-medium">{currentRideRequest.dropoffLocation?.address || 'Location not specified'}</p>
+                    <p className="font-medium">{currentRideRequest.dropoffLocation?.address || currentRideRequest.dropLocation?.address || 'Location not specified'}</p>
                   </div>
                 </div>
                 

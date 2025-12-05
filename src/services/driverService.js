@@ -189,7 +189,7 @@ updateBookingStatus: async (bookingId, status) => {
   acceptRideRequest: async (bookingId, driverLocation) => {
     try {
       const response = await apiClient.post(
-        `${API_ENDPOINTS.DRIVER_BOOKINGS}/${bookingId}/accept`,
+        `/bookings/${bookingId}/accept`,
         { driverLocation }
       );
       return handleResponse(response);
@@ -202,7 +202,8 @@ updateBookingStatus: async (bookingId, status) => {
   rejectRideRequest: async (bookingId) => {
     try {
       const response = await apiClient.post(
-        `${API_ENDPOINTS.DRIVER_BOOKINGS}/${bookingId}/reject`
+        `/bookings/${bookingId}/reject`,
+        {}
       );
       return handleResponse(response);
     } catch (error) {
