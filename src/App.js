@@ -21,6 +21,7 @@ import TaxiRegistration from './components/taxi/TaxiRegistration';
 import RegistrationStatus from './components/driver/RegistrationStatus';
 import DriverDashboard from './components/driver/DriverDashboard';
 import UserDashboard from './components/user/UserDashboard';
+import TestOtp from './components/TestOtp'; // Added import for TestOtp
 
 // Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -100,6 +101,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/verify-otp" element={<OtpVerification />} />
+              <Route path="/test-otp" element={<TestOtp />} /> {/* Added test route */}
               <Route path="/unauthorized" element={<Unauthorized />} />
 
               {/* Protected User Routes */}

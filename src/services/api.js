@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://hrtaxibackend.onrender.com/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://hrtaxibackend.onrender.com/api';
 
 // Create axios instance
 export const apiClient = axios.create({

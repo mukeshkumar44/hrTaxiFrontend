@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/api';
+import OtpVerificationModal from './OtpVerificationModal'; // Added import for OTP modal
 
 const Signup = () => {
   const [userData, setUserData] = useState({
@@ -14,6 +15,8 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false); // Added state for OTP modal
+  const [registeredEmail, setRegisteredEmail] = useState(''); // Added state to store registered email
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -39,12 +42,13 @@ const Signup = () => {
       const { confirmPassword, ...registrationData } = userData;
       const response = await authService.register(registrationData);
       
+      console.log('Registration response:', response);
+      
       localStorage.setItem('token', response.data.token);
-      sessionStorage.setItem('verificationEmail', userData.email);
-      // Navigate to OTP verification with email in state as well as query param
-      navigate(`/verify-otp?email=${encodeURIComponent(userData.email)}`, {
-        state: { email: userData.email }
-      });
+      // Set registered email and show OTP modal instead of redirecting
+      console.log('Setting registered email and showing OTP modal', userData.email);
+      setRegisteredEmail(userData.email);
+      setShowOtpModal(true);
     } catch (err) {
       // Enhanced error handling
       const errorMessage = err.response?.data?.message || 
@@ -55,6 +59,19 @@ const Signup = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle successful OTP verification
+  const handleOtpSuccess = () => {
+    // User is successfully verified, redirect to profile
+    console.log('OTP verification successful, redirecting to profile');
+    navigate('/profile');
+  };
+
+  // Handle closing OTP modal
+  const handleCloseOtpModal = () => {
+    console.log('Closing OTP modal');
+    setShowOtpModal(false);
   };
 
   return (
@@ -350,6 +367,14 @@ const Signup = () => {
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Modal */}
+      <OtpVerificationModal 
+        email={registeredEmail}
+        isOpen={showOtpModal}
+        onClose={handleCloseOtpModal}
+        onSuccess={handleOtpSuccess}
+      />
     </div>
   );
 };
